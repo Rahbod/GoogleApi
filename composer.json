@@ -3,6 +3,7 @@
     "description": "programing Google OAuth And Google Calendar Classes to use google api.",
     "keywords": ["google", "googleapi", "googlecalendar", "googleoauth"],
     "type": "library",
+    "licence": "MIT",
     "authors": [
         {
             "name": "Yusef Mobasheri",
