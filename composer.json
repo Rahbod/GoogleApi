@@ -1,0 +1,25 @@
+{
+    "name": "rahbod/rahbod-google-api",
+    "description": "programing Google OAuth And Google Calendar Classes to use google api.",
+    "keywords": ["google", "googleapi", "googlecalendar", "googleoauth"],
+    "type": "library",
+    "authors": [
+        {
+            "name": "Yusef Mobasheri",
+            "email": "yusef.mobasheri@gmail.com"
+        },
+        {
+            "name": "Masoud Gharagozlu",
+            "email": "m.gharagozlu@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=5.3.0"
+    },
+    "autoload": {
+        "psr-0": {
+            "RahbodGoogleApi": "src/"
+        }
+    }
+}
