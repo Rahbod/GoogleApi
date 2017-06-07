@@ -1,0 +1,10 @@
+{
+  "client_id": "601203669206-g6ph1uud300ibqt5iv5dt3rkdi6v0nk8.apps.googleusercontent.com",
+  "client_secret": "gVIv0owoL4ZcHt2mjnrfiPcP",
+  "auth_redirect_uri": "http://localhost/Oauth2-google/",
+  "auth_scopes": [
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/drive"
+  ],
+  "debug_mode": true
+}

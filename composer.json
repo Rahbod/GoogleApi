@@ -20,6 +20,7 @@
     },
     "autoload": {
         "psr-0": {
+            "GoogleServices": "",
             "RahbodGoogleApi": "src/"
         }
     }

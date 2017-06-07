@@ -1,11 +1,12 @@
 <?php
 namespace RahbodGoogleApi;
+
 class GoogleCalendar
 {
     const CALENDAR_BASE_URI = 'https://www.googleapis.com/calendar/v3';
 
     // Reporting errors
-    private $debug = TRUE;
+    public $debug = TRUE;
 
     // Source
     private $_source;
@@ -102,51 +103,40 @@ class GoogleCalendar
      *
      * @return array $results
      **/
-    public function getListEvents($calendar_id, $options = array())
+    public function getListEvents($calendar_id = "primary", $options = array())
     {
         if($this->isConnected()){
-            if(!empty($options) && is_array($options)){
-                // Parse the options to a usable format
-                $data['timeMin'] = (!isset($options['timeMin']))?date('Y-m-d\T00:i:sP'):date('Y-m-d\TH:i:sP', strtotime($options['timeMin']));
-                $data['timeMax'] = (!isset($options['timeMax']))?date('Y-m-d\T23:59:59P'):date('Y-m-d\TH:i:sP', strtotime($options['timeMax']));
-                $data['maxResults'] = (!isset($options['maxResults']))?50:$options['maxResults'];
-                $data['timeZone'] = (!isset($options['timeZone']))?'Asia/Tehran':$options['timeZone'];
-                $data['orderBy'] = (!isset($options['orderBy']))?'startTime':$options['orderBy'];
-                $data['singleEvents'] = "true";
-                $data = http_build_query($data);
-                // Build the Calendar URL
-                $url = self::CALENDAR_BASE_URI . "/calendars/{$calendar_id}/events?" . $data;
-                // Load the CURL Library
-                $curl = new Curl($url);
-                // Set the headers
-                $curl->setHeader($this->_headers);
-                // Make the request
-                $response = json_decode($curl->run('GET'), true);
+            // Parse the options to a usable format
+            $data['timeMin'] = (!isset($options['timeMin']))?date('Y-m-d\T00:i:sP'):date('Y-m-d\TH:i:sP', strtotime($options['timeMin']));
+            $data['timeMax'] = (!isset($options['timeMax']))?date('Y-m-d\T23:59:59P'):date('Y-m-d\TH:i:sP', strtotime($options['timeMax']));
+            $data['maxResults'] = (!isset($options['maxResults']))?50:$options['maxResults'];
+            $data['timeZone'] = (!isset($options['timeZone']))?'Asia/Tehran':$options['timeZone'];
+            $data['orderBy'] = (!isset($options['orderBy']))?'startTime':$options['orderBy'];
+            $data['singleEvents'] = "true";
+            $data = http_build_query($data);
+            // Build the Calendar URL
+            $url = self::CALENDAR_BASE_URI . "/calendars/{$calendar_id}/events?" . $data;
+            // Load the CURL Library
+            $curl = new Curl($url);
+            // Set the headers
+            $curl->setHeader($this->_headers);
+            // Make the request
+            $response = json_decode($curl->run('GET'), true);
 
-                // Set the response code for debugging purposes
-                $this->_response_code = $curl->getStatus();
-                // We should receive a 200 response. If we don't, return a blank array
-                if($this->_response_code != '200')
-                    return array();
-
-                // Build the results array
-                $results = array(
-                    'totalResults' => count($response['items']),
-                    'events' => array()
-                );
-                $results['events'] = $response['items'];
-                // Return the results as an array
-                return $results;
-
-            }else{
-                // Debug Output
-                if($this->debug == TRUE){
-                    if(empty($options)){
-                        echo 'No options were specified' . "\n";
-                    }
-                }
+            // Set the response code for debugging purposes
+            $this->_response_code = $curl->getStatus();
+            // We should receive a 200 response. If we don't, return a blank array
+            if($this->_response_code != '200')
                 return array();
-            }
+
+            // Build the results array
+            $results = array(
+                'totalResults' => count($response['items']),
+                'events' => array()
+            );
+            $results['events'] = $response['items'];
+            // Return the results as an array
+            return $results;
         }else{
             // Debug Output
             if($this->debug == TRUE){
@@ -180,7 +170,7 @@ class GoogleCalendar
      *
      * @return array
      **/
-    public function insert($calendar_id, $options, $recurring = false)
+    public function insert($calendar_id = "primary", $options, $recurring = false)
     {
         if($this->isConnected()){
             // Verify the options are properly  set
@@ -260,6 +250,7 @@ class GoogleCalendar
     /**
      *  Method to update events
      * @param string $calendar_id
+     * @param string $event_id
      * @param array $options
      * @subparam string   $id
      * @subparam bool     $canEdit
@@ -279,103 +270,78 @@ class GoogleCalendar
      *      )
      * @return array
      **/
-    public function update($calendar_id, $options = array())
+    public function update($calendar_id = "primary", $event_id, $options = array())
     {
-        if(!empty($options)){
-            // Begin Validation
-            if(!isset($options['id'])){
-                if($this->debug == TRUE){
-                    echo 'ID was not set' . "\n";
+
+        if($this->isConnected()){
+            if(!empty($options)){
+                $queryParams = http_build_query(array('supportsAttachments' => "true"));
+                $url = self::CALENDAR_BASE_URI . "/calendars/{$calendar_id}/events/{$event_id}?" . $queryParams;
+                // End isset validation
+                $curl = new Curl($url);
+                $curl->setHeader($this->_headers, $url, TRUE, TRUE, 30);
+
+                // Send request to get event details
+                $data = json_decode($curl->run('GET'), true);
+                unset($curl);
+
+                // Load new CURL instance
+                $curl = new Curl($url);
+                $data = array_merge($data, $options);
+                if(isset($options['start'])){
+                    $data['start'] = array(
+                        'dateTime' => date('c', strtotime($options['start'])),
+                        'timeZone' => isset($options['timeZone'])?$options['timeZone']:'Asia/Tehran',
+                    );
                 }
-                return array();
-            }
 
-            if(!isset($calendar_id)){
-                if($this->debug == TRUE){
-                    echo 'Calendar ID was not set' . "\n";
+                if(isset($options['end'])){
+                    $data['end'] = array(
+                        'dateTime' => date('c', strtotime($options['end'])),
+                        'timeZone' => isset($options['timeZone'])?$options['timeZone']:'Asia/Tehran',
+                    );
                 }
-                return array();
+
+                // Set the initial headers
+                $curl->setHeader($this->_headers, $url, TRUE, TRUE, 30);
+                // Make an initial request to get the GSESSIONID
+                $response = json_decode($curl->run('PUT', json_encode($data)), true);
+                // Set the response code for debugging purposes
+                $this->_response_code = $curl->getStatus();
+                // We should receive a 200 response. If we don't, return a blank array
+                if($this->_response_code != '200')
+                    return false;
+                return $response;
+            }else{
+                if($this->debug == TRUE){
+                    echo 'Event ID was not set' . "\n";
+                    return array();
+                }
             }
-
-            $queryParams = http_build_query(array('supportsAttachments' => "true"));
-            $url = self::CALENDAR_BASE_URI . "/calendars/{$calendar_id}/events/{$options['id']}?" . $queryParams;
-            // End isset validation
-
-            $curl = new Curl($url);
-            $curl->setHeader($this->_headers, $url, TRUE, TRUE, 30);
-
-            // Make an initial request to get the GSESSIONID
-            $data = json_decode($curl->run('GET'), true);
-            unset($curl);
-
-            // Load new CURL instance
-            $curl = new Curl($url);
-            $data = array_merge($data, $options);
-            if(isset($options['start'])){
-                $data['start'] = array(
-                    'dateTime' => date('c', strtotime($options['start'])),
-                    'timeZone' => isset($options['timeZone'])?$options['timeZone']:'Asia/Tehran',
-                );
-            }
-
-            if(isset($options['end'])){
-                $data['end'] = array(
-                    'dateTime' => date('c', strtotime($options['end'])),
-                    'timeZone' => isset($options['timeZone'])?$options['timeZone']:'Asia/Tehran',
-                );
-            }
-
-            // Set the initial headers
-            $curl->setHeader($this->_headers, $url, TRUE, TRUE, 30);
-            // Make an initial request to get the GSESSIONID
-            $response = json_decode($curl->run('PUT', json_encode($data)), true);
-            // Set the response code for debugging purposes
-            $this->_response_code = $curl->getStatus();
-            // We should receive a 200 response. If we don't, return a blank array
-            if($this->_response_code != '200')
-                return false;
-            return $response;
         }else{
             if($this->debug == TRUE){
-                echo 'Event ID was not set' . "\n";
+                echo 'No connection has been started' . "\n";
                 return array();
             }
         }
+        return false;
     }
 
     /**
      *  Method to get events details
      * @param string $calendar_id
-     * @param array $options
-     * @subparam string   $id
+     * @param string $event_id
      *
      * @return array
      **/
-    public function get($calendar_id, $options = array())
+    public function get($calendar_id = "primary", $event_id)
     {
-        if(!empty($options)){
-            // Begin Validation
-            if(!isset($options['id'])){
-                if($this->debug == TRUE){
-                    echo 'ID was not set' . "\n";
-                }
-                return array();
-            }
-
-            if(!isset($calendar_id)){
-                if($this->debug == TRUE){
-                    echo 'Calendar ID was not set' . "\n";
-                }
-                return array();
-            }
-
-            $url = self::CALENDAR_BASE_URI . "/calendars/{$calendar_id}/events/{$options['id']}";
+        if($this->isConnected()){
+            $url = self::CALENDAR_BASE_URI . "/calendars/{$calendar_id}/events/{$event_id}";
             // End isset validation
-
             $curl = new Curl($url);
             $curl->setHeader($this->_headers, $url, TRUE, TRUE, 30);
-
-            // Make an initial request to get the GSESSIONID
+            // send request
             $response = json_decode($curl->run('GET'), true);
             $this->_response_code = $curl->getStatus();
             // We should receive a 200 response. If we don't, return a blank array
@@ -384,32 +350,25 @@ class GoogleCalendar
             return $response;
         }else{
             if($this->debug == TRUE){
-                echo 'Event ID was not set' . "\n";
+                echo 'No connection has been started' . "\n";
                 return array();
             }
         }
+        return false;
     }
 
     /**
      *  Method to delete events
-     * @param array $options
+     * @param string $calendar_id
+     * @param array $event_id
      *
      *
      * @return bool response
      *    TRUE if the delete was successful, FALSE otherwise
      **/
-    public function delete($calendar_id, $options = array())
+    public function delete($calendar_id = "primary", $event_id)
     {
-        if(!empty($options)){
-
-            // Begin Validation
-            if(!isset($options['id'])){
-                if($this->debug == TRUE){
-                    echo 'ID was not set' . "\n";
-                }
-                return false;
-            }
-
+        if($this->isConnected()){
             if(!isset($calendar_id)){
                 if($this->debug == TRUE){
                     echo 'Calendar ID was not set' . "\n";
@@ -417,11 +376,7 @@ class GoogleCalendar
                 return false;
             }
 
-            // End isset validation
-
             // Retrieve and set the URL
-            $event_id = $options['id'];
-
             $url = self::CALENDAR_BASE_URI . "/calendars/{$calendar_id}/events/{$event_id}";
 
             // Load the CURL Library
@@ -452,45 +407,51 @@ class GoogleCalendar
             return false;
         }else{
             if($this->debug == TRUE){
-                echo 'Event ID was not set' . "\n";
-                return false;
+                echo 'No connection has been started' . "\n";
+                return array();
             }
         }
+        return false;
     }
 
     /**
      *  Method to get calendars
-     * @param array $options
-     *
      *
      * @return bool response
      *    TRUE if the delete was successful, FALSE otherwise
      **/
-    public function getCalendarList($options = array())
+    public function getCalendarList()
     {
-        $data = http_build_query($options);
-        $url = "https://content.googleapis.com/calendar/v3/users/me/calendarList";
+        if($this->isConnected()){
+            $url = "https://content.googleapis.com/calendar/v3/users/me/calendarList";
 
-        // Load the CURL Library
-        $curl = new Curl($url);
+            // Load the CURL Library
+            $curl = new Curl($url);
 
-        // Set the headers for an If-Match Request
-        $this->setHeaders();
-        // Set the header for the CURL request
-        $curl->setHeader($this->_headers, $url, false);
+            // Set the headers for an If-Match Request
+            $this->setHeaders();
+            // Set the header for the CURL request
+            $curl->setHeader($this->_headers, $url, false);
 
-        // Make the request
-        $response = json_decode($curl->run('GET'), true);
-        // Set the response code for debugging purposes
-        $this->_response_code = $curl->getStatus();
+            // Make the request
+            $response = json_decode($curl->run('GET'), true);
+            // Set the response code for debugging purposes
+            $this->_response_code = $curl->getStatus();
 
-        if($this->_response_code != 200)
-            return false;
-        // Build the results array
-        $results = array();
-        $results['totalResults'] = count($response['items']);
-        $results = array_merge($response, $results);
-        // Return the results as an array
-        return $results;
+            if($this->_response_code != 200)
+                return false;
+            // Build the results array
+            $results = array();
+            $results['totalResults'] = count($response['items']);
+            $results = array_merge($response, $results);
+            // Return the results as an array
+            return $results;
+        }else{
+            if($this->debug == TRUE){
+                echo 'No connection has been started' . "\n";
+                return array();
+            }
+        }
+        return false;
     }
 }

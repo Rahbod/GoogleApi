@@ -54,12 +54,6 @@ class GoogleOAuth
 	 */
 	public function authenticate()
 	{
-		if($this->getAccessToken()){
-			if($this->isAccessTokenExpired() && $this->getRefreshToken())
-				$this->refreshAccessToken($this->getRefreshToken());
-			else
-				$this->_token = NULL;
-		}
 		if(!isset($_GET['code'])){
 			header('Location:' . $this->getAuthUrl());
 		}
@@ -77,6 +71,10 @@ class GoogleOAuth
 		if(isset($result['access_token'])){
 			$this->_token = $result;
 			$this->_token['created'] = time();
+			if($this->_access_type == 'offline' && !$this->getRefreshToken()){
+				$this->revokeToken($this->getAccessToken());
+				header('Location:' . $this->getAuthUrl());
+			}
 		}else{
 			$this->_error = $result['error'];
 			$this->_error_description = $result['error_description'];
@@ -263,7 +261,7 @@ class GoogleOAuth
 		if(is_array($token))
 			$this->_token = $token;
 		elseif(is_string($token) && json_decode($token))
-			$this->_token = json_decode($token,true);
+			$this->_token = json_decode($token, true);
 	}
 
 	/**
