@@ -1,12 +1,19 @@
 # GoogleApi
 setup config.json file
 
-1- install:
-<code>composer require rahbod/rahbod-google-api:dev-master<code>
-2- create an onbject:
-<code>
+## Installation & loading
+```sh
+composer require rahbod/rahbod-google-api:dev-master
+```
+
+## A Simple Example
+
+```php
+<?php
 require 'vendor/autoload.php';
+
 $services = new GoogleServices();
 $calendar = $services->calendar;
 $drive = $services->drive;
-<code>
+?>
+```
