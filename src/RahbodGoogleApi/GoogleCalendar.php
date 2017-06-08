@@ -148,56 +148,16 @@ class GoogleCalendar
 
     /**
      *  Method to create new events
-     * @param int $calendar_id
+     * @param string $calendar_id
      * @param bool $recurring
-     * @param array $options | $type == 1
-     * @subparam array $start
-     * @subparam array $end
-     * @subparam string $summary title of event
-     * @subparam string $location
-     * @subparam string $description
-     * @subparam string $timeZone
-     * @subparam string $status
-     *
-     *  Example Options for Single Events
-     *        array(
-     *        'start'=>date('c', strtotime("8 am")),
-     *        'end'=>date('c', strtotime("5 pm")),
-     *        'summary'=>'Meeting with Jane',
-     *        'description'=>'Discuss business plan',
-     *        'location'=>'My Office',
-     *        )
-     *
+     * @param CalendarEventModel $eventModel
      * @return array
      **/
-    public function insert($calendar_id = "primary", $options, $recurring = false)
+    public function insert($calendar_id = "primary", CalendarEventModel $eventModel, $recurring = false)
     {
         if($this->isConnected()){
             // Verify the options are properly  set
-            if(!empty($options) && is_array($options)){
-
-                // Verify the required fields are set to something
-                if(!isset($options['summary'])){
-                    if($this->debug == TRUE){
-                        echo 'No title was specified for event creation' . "\n";
-                    }
-                    return array();
-                }
-
-                if(!isset($options['start'])){
-                    if($this->debug == TRUE){
-                        echo 'No start time specified for event creation' . "\n";
-                    }
-                    return array();
-                }
-
-                if(!isset($options['end'])){
-                    if($this->debug == TRUE){
-                        echo 'No end time specified for event creation' . "\n";
-                    }
-                    return array();
-                }
-
+            if(!empty($eventModel)){
                 // End isset validation
                 $queryParams = http_build_query(array('supportsAttachments' => "true"));
 
@@ -205,36 +165,25 @@ class GoogleCalendar
 
                 // Load the CURL Library
                 $curl = new Curl($url);
-                // Create a blank data set
-                $data = array();
-                // If we are creating a single event, or doing anything else not specified below
-                $data = $options;
-                $data['start'] = array(
-                    'dateTime' => date('c', strtotime($options['start'])),
-                    'timeZone' => isset($options['timeZone'])?$options['timeZone']:'Asia/Tehran',
-                );
-                $data['end'] = array(
-                    'dateTime' => date('c', strtotime($options['end'])),
-                    'timeZone' => isset($options['timeZone'])?$options['timeZone']:'Asia/Tehran',
-                );
-
-                if(!$recurring)
-                    unset($data['recurrence']);
 
                 // Set the initial headers
                 $curl->setHeader($this->_headers, $url, TRUE, TRUE, 30);
 
-                // Make an initial request to get the GSESSIONID
-                $response = json_decode($curl->run('POST', json_encode($data)), true);
+//                var_dump(json_encode($eventModel));exit;
+                // Send Request
+                $response = json_decode($curl->run('POST', json_encode($eventModel)), true);
                 // Set the response code for debugging purposes
                 $this->_response_code = $curl->getStatus();
                 // We should receive a 200 response. If we don't, return a blank array
-                if($this->_response_code != '200')
+                if($this->_response_code != '200'){
+                    if($this->debug)
+                        die($response['error']['message']);
                     return false;
+                }
                 return $response;
             }else{
                 if($this->debug == TRUE){
-                    echo 'Options are not properly set' . "\n";
+                    echo 'Event Model are not properly set' . "\n";
                     return array();
                 }
             }
@@ -251,30 +200,14 @@ class GoogleCalendar
      *  Method to update events
      * @param string $calendar_id
      * @param string $event_id
-     * @param array $options
-     * @subparam string   $id
-     * @subparam bool     $canEdit
-     * @subparam string   $title
-     * @subparam string   $details
-     * @subparam string   $location
-     * @subparam datetime $start
-     * @subparam datetime $end
-     *  Example Options for Update
-     *      array(
-     *        'id'=>'calendar_id'
-     *        'start'=>date('c', strtotime("8 am")),
-     *        'end'=>date('c', strtotime("5 pm")),
-     *        'title'=>'Meeting with Jane',
-     *        'details'=>'Discuss business plan',
-     *        'location'=>'My Office',
-     *      )
+     * @param CalendarEventModel $eventModel
      * @return array
      **/
-    public function update($calendar_id = "primary", $event_id, $options = array())
+    public function update($calendar_id = "primary", $event_id, $eventModel)
     {
 
         if($this->isConnected()){
-            if(!empty($options)){
+            if(!empty($eventModel)){
                 $queryParams = http_build_query(array('supportsAttachments' => "true"));
                 $url = self::CALENDAR_BASE_URI . "/calendars/{$calendar_id}/events/{$event_id}?" . $queryParams;
                 // End isset validation
@@ -282,39 +215,29 @@ class GoogleCalendar
                 $curl->setHeader($this->_headers, $url, TRUE, TRUE, 30);
 
                 // Send request to get event details
-                $data = json_decode($curl->run('GET'), true);
+                $data = json_decode($curl->run('GET'));
                 unset($curl);
-
+                $lastModel = new CalendarEventModel();
+                $lastModel->load($data);
                 // Load new CURL instance
                 $curl = new Curl($url);
-                $data = array_merge($data, $options);
-                if(isset($options['start'])){
-                    $data['start'] = array(
-                        'dateTime' => date('c', strtotime($options['start'])),
-                        'timeZone' => isset($options['timeZone'])?$options['timeZone']:'Asia/Tehran',
-                    );
-                }
-
-                if(isset($options['end'])){
-                    $data['end'] = array(
-                        'dateTime' => date('c', strtotime($options['end'])),
-                        'timeZone' => isset($options['timeZone'])?$options['timeZone']:'Asia/Tehran',
-                    );
-                }
-
+                $data = CalendarEventModel::merge($lastModel,$eventModel);
                 // Set the initial headers
                 $curl->setHeader($this->_headers, $url, TRUE, TRUE, 30);
-                // Make an initial request to get the GSESSIONID
+                // Send Request
                 $response = json_decode($curl->run('PUT', json_encode($data)), true);
                 // Set the response code for debugging purposes
                 $this->_response_code = $curl->getStatus();
                 // We should receive a 200 response. If we don't, return a blank array
-                if($this->_response_code != '200')
+                if($this->_response_code != '200'){
+                    if($this->debug)
+                        die($response['error']['message']);
                     return false;
+                }
                 return $response;
             }else{
                 if($this->debug == TRUE){
-                    echo 'Event ID was not set' . "\n";
+                    echo 'Event Model are not properly set' . "\n";
                     return array();
                 }
             }
@@ -342,12 +265,14 @@ class GoogleCalendar
             $curl = new Curl($url);
             $curl->setHeader($this->_headers, $url, TRUE, TRUE, 30);
             // send request
-            $response = json_decode($curl->run('GET'), true);
+            $response = json_decode($curl->run('GET'));
+            $model = new CalendarEventModel();
+            $model->load($response);
             $this->_response_code = $curl->getStatus();
             // We should receive a 200 response. If we don't, return a blank array
             if($this->_response_code != '200')
                 return false;
-            return $response;
+            return $model;
         }else{
             if($this->debug == TRUE){
                 echo 'No connection has been started' . "\n";
@@ -453,5 +378,13 @@ class GoogleCalendar
             }
         }
         return false;
+    }
+
+    /**
+     * @return CalendarEventModel
+     */
+    public function getNewEventModel()
+    {
+        return new CalendarEventModel();
     }
 }

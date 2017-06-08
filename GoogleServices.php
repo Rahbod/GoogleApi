@@ -2,6 +2,7 @@
 use RahbodGoogleApi\GoogleOAuth;
 use RahbodGoogleApi\GoogleCalendar;
 use RahbodGoogleApi\GoogleDrive;
+use RahbodGoogleApi\CalendarEventModel;
 
 /**
  * Class GoogleServices
