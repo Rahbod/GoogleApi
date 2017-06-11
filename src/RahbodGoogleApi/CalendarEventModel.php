@@ -177,22 +177,30 @@ class CalendarEventModel
         ];
     }
 
+//    /**
+//     * @param string $type (RRULE|EXRULE|RDATE|EXDATE)
+//     * @param string $freq (DAILY|WEEKLY|YEARLY)
+//     * @param string $count
+//     * @param string $interval
+//     * @param string $byday short weekday names, (Sa, Su, Mo, Tu, We, Th, Fr)
+//     * @param string $until short weekday names, (Sa, Su, Mo, Tu, We, Th, Fr)
+//     */
+//    public function addRecurrence($type = 'RRULE', $freq = 'DAILY', $interval = '', $count = '', $byday = '', $until = '')
+//    {
+//        $freq = $freq && !empty($freq)?"FREQ=$freq;":"";
+//        $count = $count && !empty($count)?"COUNT=$count;":"";
+//        $interval = $interval && !empty($interval)?"INTERVAL=$interval;":"";
+//        $byday = $byday && !empty($byday)?"BYDAY=$byday;":"";
+//        $until = $until && !empty($until)?"UNTIL=$until;":"";
+//        $this->recurrence[] = "$type:$count";
+//    }
+
     /**
-     * @param string $type (RRULE|EXRULE|RDATE|EXDATE)
-     * @param string $freq (DAILY|WEEKLY|YEARLY)
-     * @param string $count
-     * @param string $interval
-     * @param string $byday short weekday names, (Sa, Su, Mo, Tu, We, Th, Fr)
-     * @param string $until short weekday names, (Sa, Su, Mo, Tu, We, Th, Fr)
+     * @param $rule
      */
-    public function addRecurrence($type = 'RRULE', $freq = 'DAILY', $interval = '', $count = '', $byday = '', $until = '')
+    public function addRecurrence($rule)
     {
-        $freq = $freq && !empty($freq)?"FREQ=$freq;":"";
-        $count = $count && !empty($count)?"COUNT=$count;":"";
-        $interval = $interval && !empty($interval)?"INTERVAL=$interval;":"";
-        $byday = $byday && !empty($byday)?"BYDAY=$byday;":"";
-        $until = $until && !empty($until)?"UNTIL=$until;":"";
-        $this->recurrence[] = "$type:$count";
+        $this->recurrence[] = $rule;
     }
 
     /**

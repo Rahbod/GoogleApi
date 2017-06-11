@@ -13,6 +13,6 @@ $eventModel->description= "Hi Test.";
 $eventModel->location= "My Office.";
 $eventModel->setStart('8 am','Asia/Tehran');
 $eventModel->setEnd('8 pm','Asia/Tehran');
-$eventModel->recurrence = 'RRULE:FREQ=WEEKLY;BYDAY=Tu;UNTIL=20170606';
+$eventModel->addRecurrence('RRULE:FREQ=WEEKLY;BYDAY=Tu;UNTIL=20170806');
 $calendarId = 'primary';
 $services->calendar->insert($calendarId,$eventModel);

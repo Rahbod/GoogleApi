@@ -107,9 +107,13 @@ class GoogleCalendar
     {
         if($this->isConnected()){
             // Parse the options to a usable format
-            $data['timeMin'] = (!isset($options['timeMin']))?date('Y-m-d\T00:i:sP'):date('Y-m-d\TH:i:sP', strtotime($options['timeMin']));
-            $data['timeMax'] = (!isset($options['timeMax']))?date('Y-m-d\T23:59:59P'):date('Y-m-d\TH:i:sP', strtotime($options['timeMax']));
-            $data['maxResults'] = (!isset($options['maxResults']))?50:$options['maxResults'];
+            $data=[];
+            if(isset($options['timeMin']))
+                $data['timeMin'] = date('Y-m-d\TH:i:sP', strtotime($options['timeMin']));
+            if(isset($options['timeMax']))
+                $data['timeMax'] = date('Y-m-d\TH:i:sP', strtotime($options['timeMax']));
+            if(isset($options['maxResults']))
+                $data['maxResults'] = $options['maxResults'];
             $data['timeZone'] = (!isset($options['timeZone']))?'Asia/Tehran':$options['timeZone'];
             $data['orderBy'] = (!isset($options['orderBy']))?'startTime':$options['orderBy'];
             $data['singleEvents'] = "true";
@@ -168,19 +172,18 @@ class GoogleCalendar
 
                 // Set the initial headers
                 $curl->setHeader($this->_headers, $url, TRUE, TRUE, 30);
-
-//                var_dump(json_encode($eventModel));exit;
                 // Send Request
                 $response = json_decode($curl->run('POST', json_encode($eventModel)), true);
                 // Set the response code for debugging purposes
                 $this->_response_code = $curl->getStatus();
                 // We should receive a 200 response. If we don't, return a blank array
+                var_dump($response);exit;
                 if($this->_response_code != '200'){
                     if($this->debug)
                         die($response['error']['message']);
                     return false;
                 }
-                return $response;
+                return $response['id'];
             }else{
                 if($this->debug == TRUE){
                     echo 'Event Model are not properly set' . "\n";
@@ -234,7 +237,7 @@ class GoogleCalendar
                         die($response['error']['message']);
                     return false;
                 }
-                return $response;
+                return $response['id'];
             }else{
                 if($this->debug == TRUE){
                     echo 'Event Model are not properly set' . "\n";
@@ -270,9 +273,81 @@ class GoogleCalendar
             $model->load($response);
             $this->_response_code = $curl->getStatus();
             // We should receive a 200 response. If we don't, return a blank array
-            if($this->_response_code != '200')
+            if($this->_response_code != '200'){
+                if($this->debug)
+                    die($response['error']['message']);
                 return false;
+            }
             return $model;
+        }else{
+            if($this->debug == TRUE){
+                echo 'No connection has been started' . "\n";
+                return array();
+            }
+        }
+        return false;
+    }
+
+
+    /**
+     *  Method to instances of recurring events
+     *
+     * @param string $calendar_id
+     * @param string $event_id
+     * @param array $options
+     * @subparam datetime $timeMin
+     * @subparam datetime $timeMax
+     * @subparam bool showDeleted
+     * @subparam int $maxResults    (50)
+     * @subparam string $timeZone
+     *
+     *  Example $options
+     *    array(
+     *        'timeMin'=>date('c', strtotime("8 am")),
+     *        'timeMax'=>date('c', strtotime("5 pm")),
+     *        'maxResults'=>5,
+     *        'showDeleted'=>'true',
+     *        'timeZone'=>'Asia/Tehran',
+     *    )
+     *
+     * @return array $results
+     **/
+    public function getInstances($calendar_id = "primary", $event_id, $options = array())
+    {
+        if($this->isConnected()){
+            $data=[];
+            if(isset($options['timeMin']))
+                $data['timeMin'] = date('Y-m-d\TH:i:sP', strtotime($options['timeMin']));
+            if(isset($options['timeMax']))
+                $data['timeMax'] = date('Y-m-d\TH:i:sP', strtotime($options['timeMax']));
+            if(isset($options['maxResults']))
+                $data['maxResults'] = $options['maxResults'];
+            if(isset($options['showDeleted']))
+                $data['showDeleted'] = $options['showDeleted'];
+            $data['timeZone'] = (!isset($options['timeZone']))?'Asia/Tehran':$options['timeZone'];
+            $data['orderBy'] = (!isset($options['orderBy']))?'startTime':$options['orderBy'];
+            $data = http_build_query($data);
+
+            $url = self::CALENDAR_BASE_URI . "/calendars/{$calendar_id}/events/{$event_id}/instances?".$data;
+            // End isset validation
+            $curl = new Curl($url);
+            $curl->setHeader($this->_headers, $url, TRUE, TRUE, 30);
+            // send request
+            $response = json_decode($curl->run('GET'),true);
+            $this->_response_code = $curl->getStatus();
+            // We should receive a 200 response. If we don't, return a blank array
+            if($this->_response_code != '200'){
+                if($this->debug)
+                    die($response['error']['message']);
+                return false;
+            }
+            $results = array(
+                'totalResults' => count($response['items']),
+                'instances' => array()
+            );
+            foreach($response['items'] as $key=>$item)
+                $results['instances'][$key] = $item['id'];
+            return $results;
         }else{
             if($this->debug == TRUE){
                 echo 'No connection has been started' . "\n";
