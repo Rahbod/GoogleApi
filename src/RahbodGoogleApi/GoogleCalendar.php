@@ -177,13 +177,19 @@ class GoogleCalendar
                 // Set the response code for debugging purposes
                 $this->_response_code = $curl->getStatus();
                 // We should receive a 200 response. If we don't, return a blank array
-                var_dump($response);exit;
                 if($this->_response_code != '200'){
                     if($this->debug)
                         die($response['error']['message']);
-                    return false;
+                    return [
+                        'error' => true,
+                        'code' => $this->_response_code,
+                        'message' => $response['error']['message']
+                    ];
                 }
-                return $response['id'];
+                return [
+                    'eventId' => $response['id'],
+                    'eventStatus' => $response['status'],
+                ];
             }else{
                 if($this->debug == TRUE){
                     echo 'Event Model are not properly set' . "\n";
@@ -235,9 +241,16 @@ class GoogleCalendar
                 if($this->_response_code != '200'){
                     if($this->debug)
                         die($response['error']['message']);
-                    return false;
+                    return [
+                        'error' => true,
+                        'code' => $this->_response_code,
+                        'message' => $response['error']['message']
+                    ];
                 }
-                return $response['id'];
+                return [
+                    'eventId' => $response['id'],
+                    'eventStatus' => $response['status'],
+                ];
             }else{
                 if($this->debug == TRUE){
                     echo 'Event Model are not properly set' . "\n";
@@ -276,7 +289,11 @@ class GoogleCalendar
             if($this->_response_code != '200'){
                 if($this->debug)
                     die($response['error']['message']);
-                return false;
+                return [
+                    'error' => true,
+                    'code' => $this->_response_code,
+                    'message' => $response['error']['message']
+                ];
             }
             return $model;
         }else{
@@ -339,7 +356,11 @@ class GoogleCalendar
             if($this->_response_code != '200'){
                 if($this->debug)
                     die($response['error']['message']);
-                return false;
+                return [
+                    'error' => true,
+                    'code' => $this->_response_code,
+                    'message' => $response['error']['message']
+                ];
             }
             $results = array(
                 'totalResults' => count($response['items']),
@@ -395,16 +416,20 @@ class GoogleCalendar
             $response = json_decode($curl->run('DELETE'), true);
             // Set the response code for debugging purposes
             $this->_response_code = $curl->getStatus();
-
             if(($this->_response_code == 200 || $this->_response_code == 204) && $response == NULL){
-                return true;
+                return [
+                    'eventId' => $event_id,
+                    'eventStatus' => 'cancelled',
+                ];
             }else{
-                if($this->debug == TRUE){
-                    echo 'Deletion failed with response code: ' . $this->_response_code . "\n";
-                    echo 'Message: ' . $response['error']['message'];
-                }
+                if($this->debug)
+                    die($response['error']['message']);
+                return [
+                    'error' => true,
+                    'code' => $this->_response_code,
+                    'message' => $response['error']['message']
+                ];
             }
-            return false;
         }else{
             if($this->debug == TRUE){
                 echo 'No connection has been started' . "\n";

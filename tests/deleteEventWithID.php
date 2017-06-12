@@ -5,5 +5,5 @@ $services = new GoogleServices();
 // load auth token from db
 //$services->setAuthToken($token->access_token,$token->token_type,$token->expires_in,$token->created,$token->refresh_token);
 $calendarId = 'primary';
-$eventId = '540aa34l4aceeris9gf6hk7go8';
+$eventId = 'ri48q59314s7jou9h8ee034mjo';
 $services->calendar->delete($calendarId, $eventId);

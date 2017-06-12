@@ -6,5 +6,5 @@
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/drive"
   ],
-  "debug_mode": true
+  "debug_mode": false
 }
