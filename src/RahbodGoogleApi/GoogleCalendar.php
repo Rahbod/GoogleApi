@@ -88,7 +88,8 @@ class GoogleCalendar
      * @param array $options
      * @subparam datetime $timeMin
      * @subparam datetime $timeMax
-     * @subparam string $orderBy    (startTime|updated)
+     * @subparam bool $singleEvents (true|flase)
+     * @subparam string $orderBy    (startTime|updated) this option working when single item be true
      * @subparam int $maxResults    (50)
      * @subparam string $timeZone
      *
@@ -97,9 +98,11 @@ class GoogleCalendar
      *        'timeMin'=>date('c', strtotime("8 am")),
      *        'timeMax'=>date('c', strtotime("5 pm")),
      *        'maxResults'=>5,
+     *        'singleEvents'=>true,
      *        'orderBy'=>'startTime',
      *        'timeZone'=>'Asia/Tehran',
      *    )
+     *
      *
      * @return array $results
      **/
@@ -115,8 +118,10 @@ class GoogleCalendar
             if(isset($options['maxResults']))
                 $data['maxResults'] = $options['maxResults'];
             $data['timeZone'] = (!isset($options['timeZone']))?'Asia/Tehran':$options['timeZone'];
-            $data['orderBy'] = (!isset($options['orderBy']))?'startTime':$options['orderBy'];
-            $data['singleEvents'] = "true";
+            if(isset($options['singleEvents']) && $options['singleEvents']){
+                $data['orderBy'] = (!isset($options['orderBy']))?'starttime':$options['orderBy'];
+                $data['singleEvents'] = "true";
+            }
             $data = http_build_query($data);
             // Build the Calendar URL
             $url = self::CALENDAR_BASE_URI . "/calendars/{$calendar_id}/events?" . $data;
@@ -138,7 +143,23 @@ class GoogleCalendar
                 'totalResults' => count($response['items']),
                 'events' => array()
             );
-            $results['events'] = $response['items'];
+            $i=0;
+            foreach($response['items'] as $item){
+                if(isset($item['recurrence']))
+                {
+                    $results['events'][$i] = $item;
+                    $instances = $this->getInstances($calendar_id, $item['id'], array(), true);
+                    if($instances){
+                        foreach($instances['instances'] as $instance){
+                            $i++;
+                            $results['events'][$i] = $instance;
+                        }
+                    }
+                }
+                $results['events'][$i]  = $item;
+                $i++;
+            }
+            var_dump($results);exit();
             // Return the results as an array
             return $results;
         }else{
@@ -326,10 +347,11 @@ class GoogleCalendar
      *        'showDeleted'=>'true',
      *        'timeZone'=>'Asia/Tehran',
      *    )
+     * @param bool $fullDetails when true return all details of instance events
      *
      * @return array $results
      **/
-    public function getInstances($calendar_id = "primary", $event_id, $options = array())
+    public function getInstances($calendar_id = "primary", $event_id, $options = array(), $fullDetails = false)
     {
         if($this->isConnected()){
             $data=[];
@@ -366,8 +388,11 @@ class GoogleCalendar
                 'totalResults' => count($response['items']),
                 'instances' => array()
             );
-            foreach($response['items'] as $key=>$item)
-                $results['instances'][$key] = $item['id'];
+            if(!$fullDetails)
+                foreach($response['items'] as $key=>$item)
+                    $results['instances'][$key] = $item['id'];
+            else
+                $results['instances'] = $response['items'];
             return $results;
         }else{
             if($this->debug == TRUE){
